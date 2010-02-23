@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project default="jar" name="unzipper" basedir=".">
+  <!-- -->
+  <property name="build.classes.dir" value="build/classes"/>
+  <property name="build.lib.dir" value="build/lib"/>
+  <property name="build.src.dir" value="build/src"/>
+  <property name="jar.name" value="unzipper.jar"/>
+  <property name="package.dir" value="org/mightyfrog/util/zip"/>
+  <property name="package.name" value="org.mightyfrog.util.zip"/>
+
+  <!-- -->
+  <path id="classpath">
+    <pathelement location="${build.classes.dir}/"/>
+    <pathelement location="${build.lib.dir}/"/>
+  </path>
+
+  <!-- -->
+  <target name="versioning">
+    <buildnumber/>
+    <mkdir dir="${build.src.dir}"/>
+    <tstamp>
+      <format property="timestamp" pattern="MMddyyyykk"/>
+    </tstamp>
+    <copy todir="${build.src.dir}">
+      <fileset dir="./src">
+        <include name="**/*.java"/>
+      </fileset> 
+      <filterset>
+        <!--<filter token="TIMESTAMP" value="${timestamp}-${build.number}"/>-->
+        <filter token="TIMESTAMP" value="${timestamp}"/>
+      </filterset>
+    </copy>
+  </target>
+
+  <!-- -->
+  <target name="jar">
+    <antcall target="versioning"/>
+    <copy todir="${build.classes.dir}">
+      <fileset dir="./properties"/>
+    </copy>
+    <mkdir dir="${build.classes.dir}"/>
+    <javac srcdir="${build.src.dir}" destdir="${build.classes.dir}" deprecation="true" debug="true">
+      <compilerarg value="-Xlint:unchecked"/>
+      <include name="${package.dir}/*.java"/>
+    </javac>
+
+    <copy todir="${build.classes.dir}/${package.dir}">
+      <fileset file="./src/${package.dir}/icon.png"/>
+    </copy>
+
+    <mkdir dir="${build.lib.dir}"/>
+    <jar manifest="./manifest.mf" jarfile="${build.lib.dir}/${jar.name}" basedir="${build.classes.dir}">
+      <include name="i18n.properties"/>
+      <include name="i18n_ja.properties"/>
+      <include name="${package.dir}/**/**"/>
+    </jar>
+  </target>
+
+  <!-- -->
+  <target name="clean">
+    <delete dir="./build" verbose="true"/>
+  </target>
+
+  <!-- -->
+  <target name="run" depends="jar">
+    <java fork="true" classpath="${build.lib.dir}/${jar.name}" classname="${package.name}.Unzipper">
+      <jvmarg value="-esa"/>
+    </java>
+  </target>
+
+  <!-- -->
+  <target name="obfuscate" depends="jar">
+    <taskdef name="yguard" classname="com.yworks.yguard.YGuardTask" classpath="${lib.dir}/yguard.jar"/>
+    <property name="srcDir" value="./src"/>
+    <property name="classDir" value="${build.classes.dir}"/>
+    <property name="jar" value="${jar_name}"/>
+    <property name="obfjar" value="unzipper_obf.jar"/>
+    <property name="mainclass" value="${package.name}.Unzipper"/>
+    <property name="renamelog" value="./build/obfuscation_renamelog.xml"/>
+    <property name="shrinklog" value="./build/obfuscation_shrinklog.xml"/>
+    <yguard>
+      <inoutpair in="${build.lib.dir}/${jar.name}" out="${build.lib.dir}/${obfjar}"/>
+      <shrink logfile="${shrinklog}">
+        <keep>
+          <class classes="protected" methods="protected" fields="protected">
+            <patternset>
+              <include name="${package.name}.*"/>
+            </patternset>
+          </class>
+        </keep>
+      </shrink>
+      <rename mainclass="${mainclass}" logfile="${renamelog}">
+        <property name="error-checking" value="pedantic"/>
+        <keep>
+          <class classes="protected" methods="protected" fields="protected">
+            <patternset>
+              <include name="${package.name}.*"/>
+            </patternset>
+          </class>
+        </keep>
+      </rename>
+    </yguard>
+  </target>
+</project>
